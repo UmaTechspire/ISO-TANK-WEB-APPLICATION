@@ -1,5 +1,0 @@
-.env
-venv/
-app/_pycache_/
-uploads/*
-requirements.txt
