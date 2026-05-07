@@ -11,7 +11,7 @@ const unwrap = (response) => {
     return response;
 };
 
-export default function TankframeAndOuterShellTab({ tankId, onNext, onClose }) {
+export default function TankframeAndOuterShellTab({ tankId, onNext, onClose, isNewFlow }) {
     const safeTankId = (typeof tankId === 'object' && tankId !== null) ? tankId.id : tankId;
 
     const [allGA, setAllGA] = useState([]);
@@ -160,9 +160,9 @@ export default function TankframeAndOuterShellTab({ tankId, onNext, onClose }) {
                             Close
                         </button>
                     )}
-                    {onClose && (
-                        <button onClick={onClose} className="px-8 py-2 text-white bg-[#546E7A] rounded-md hover:bg-[#455A64] font-medium shadow-sm flex items-center transition-colors text-sm">
-                            Save
+                    {onNext && (
+                        <button onClick={onNext} className="px-8 py-2 text-white bg-[#546E7A] rounded-md hover:bg-[#455A64] font-medium shadow-sm flex items-center transition-colors text-sm">
+                            {isNewFlow ? 'Save' : 'Update'}
                         </button>
                     )}
                 </div>

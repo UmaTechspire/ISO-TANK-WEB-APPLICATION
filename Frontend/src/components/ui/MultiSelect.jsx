@@ -41,12 +41,14 @@ export const MultiSelect = ({
                     return (
                         <div
                             key={opt.value}
-                            className={`flex items-center justify-between px-3 py-2 cursor-pointer text-sm select-none transition-colors border-b border-gray-50 last:border-0 ${isSelected ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-50 text-gray-700'
+                            className={`flex items-center gap-3 px-3 py-2 cursor-pointer text-sm select-none transition-colors border-b border-gray-50 last:border-0 ${isSelected ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-50 text-gray-700'
                                 }`}
                             onClick={() => toggleOption(opt.value)}
                         >
+                            <div className="w-4 h-4 flex-shrink-0">
+                                {isSelected && <Check className="w-4 h-4 text-blue-600" />}
+                            </div>
                             <span>{opt.label}</span>
-                            {isSelected && <Check className="w-4 h-4 text-blue-600" />}
                         </div>
                     );
                 })

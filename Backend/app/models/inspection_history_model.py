@@ -21,7 +21,7 @@ class InspectionHistory(Base):
     tank_id = Column(Integer, nullable=True, index=True)
     tank_number = Column(String(50), nullable=False, index=True)
     status_id = Column(Integer, nullable=True, index=True)
-    product_id = Column(Integer, nullable=True, index=True)
+    product_id = Column(String(255), nullable=True, index=True)
     inspection_type_id = Column(Integer, nullable=True)
     location_id = Column(Integer, nullable=True)
     working_pressure = Column(String(50), nullable=True)

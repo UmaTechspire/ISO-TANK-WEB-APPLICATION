@@ -28,7 +28,7 @@ const colorMap = {
   teal: { icon: 'bg-teal-100 text-teal-600', badge: 'text-teal-500', btn: 'text-teal-600 border-teal-200 hover:bg-teal-600 hover:text-white hover:border-teal-600', card: 'border-teal-100 bg-teal-50/30 hover:bg-teal-50 hover:border-teal-300' },
 };
 
-export default function TankCertificateTab({ tankId, onClose, onNext }) {
+export default function TankCertificateTab({ tankId, onClose, onNext, isNewFlow }) {
   const safeTankId = (typeof tankId === 'object' && tankId !== null) ? tankId.id : tankId;
 
   const [certificate, setCertificate] = useState(null);
@@ -184,13 +184,19 @@ export default function TankCertificateTab({ tankId, onClose, onNext }) {
       {(onClose || onNext) && (
         <div className="flex justify-end pt-3 mt-3 border-t space-x-3">
           {onClose && (
-            <button onClick={onClose} className="px-6 py-2 bg-gray-500 text-white rounded font-bold hover:bg-gray-600 transition-colors">
+            <button
+              onClick={onClose}
+              className="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 font-medium shadow-sm transition-colors text-sm"
+            >
               Close
             </button>
           )}
           {onNext && (
-            <button onClick={onNext} className="px-6 py-2 bg-[#54737E] text-white rounded font-bold hover:bg-[#455A64] transition-colors">
-              Next
+            <button
+              onClick={onNext}
+              className="px-6 py-2 text-white bg-[#546E7A] rounded-md hover:bg-[#455A64] font-medium shadow-sm flex items-center transition-colors text-sm"
+            >
+              {isNewFlow ? 'Save & Next' : 'Next'}
             </button>
           )}
         </div>

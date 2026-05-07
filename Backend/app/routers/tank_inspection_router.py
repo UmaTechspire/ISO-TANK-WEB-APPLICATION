@@ -696,7 +696,7 @@ def get_all_tank_inspection_masters():
 # Simple validator for tank existence (kept)
 def validate_tank_exists(db: Session, tank_number: str):
     result = db.execute(
-        text("SELECT 1 FROM tank_header WHERE tank_number = :tank_number"),
+        text("SELECT 1 FROM tank_header WHERE tank_number COLLATE utf8mb4_unicode_ci = :tank_number COLLATE utf8mb4_unicode_ci"),
         {"tank_number": tank_number},
     ).fetchone()
     if not result:
@@ -787,7 +787,7 @@ def create_tank_inspection(
             text("""
                 SELECT inspection_id, report_number
                 FROM tank_inspection_details 
-                WHERE tank_number = :tn 
+                WHERE tank_number COLLATE utf8mb4_unicode_ci = :tn COLLATE utf8mb4_unicode_ci 
                   AND (is_submitted IS NULL OR is_submitted = 0)
                   AND (web_submitted IS NULL OR web_submitted = 0)
                   AND (is_reviewed IS NULL OR is_reviewed = 0)
@@ -815,7 +815,7 @@ def create_tank_inspection(
 
         # Duplicate Check
         existing = db.execute(
-            text("SELECT inspection_id FROM tank_inspection_details WHERE tank_number = :tn AND DATE(inspection_date) = :d AND inspection_type_id = :itype LIMIT 1"),
+            text("SELECT inspection_id FROM tank_inspection_details WHERE tank_number COLLATE utf8mb4_unicode_ci = :tn COLLATE utf8mb4_unicode_ci AND DATE(inspection_date) = :d AND inspection_type_id = :itype LIMIT 1"),
             {"tn": tank_number, "d": inspection_date.date(), "itype": payload.inspection_type_id},
         ).fetchone()
         if existing:
@@ -881,7 +881,7 @@ def create_tank_inspection(
             # --- SYNCHRONIZE TANK MASTER ---
             if svb is not None:
                 db.execute(
-                    text("UPDATE tank_details SET safety_valve_brand_id = :svb WHERE tank_number = :tn"),
+                    text("UPDATE tank_details SET safety_valve_brand_id = :svb WHERE tank_number COLLATE utf8mb4_unicode_ci = :tn COLLATE utf8mb4_unicode_ci"),
                     {"svb": svb, "tn": tank_number}
                 )
             
@@ -1055,7 +1055,7 @@ def update_tank_inspection_details(
                 if "safety_valve_brand_id" in params:
                     target_tank_number = params.get("tank_number", current_tank_number)
                     db.execute(
-                        text("UPDATE tank_details SET safety_valve_brand_id = :svb WHERE tank_number = :tn"),
+                        text("UPDATE tank_details SET safety_valve_brand_id = :svb WHERE tank_number COLLATE utf8mb4_unicode_ci = :tn COLLATE utf8mb4_unicode_ci"),
                         {"svb": params["safety_valve_brand_id"], "tn": target_tank_number}
                     )
 
@@ -1174,7 +1174,7 @@ def get_inspection_review(
                     text("""
                         SELECT next_insp_date
                         FROM tank_certificate
-                        WHERE tank_number = :tank_number
+                        WHERE tank_number COLLATE utf8mb4_unicode_ci = :tank_number COLLATE utf8mb4_unicode_ci
                         ORDER BY id DESC
                         LIMIT 1
                     """),
@@ -1457,7 +1457,7 @@ def get_tank_details(
             text("""
                 SELECT next_insp_date
                 FROM tank_certificate
-                WHERE tank_number = :tn
+                WHERE tank_number COLLATE utf8mb4_unicode_ci = :tn COLLATE utf8mb4_unicode_ci
                 ORDER BY id DESC
                 LIMIT 1
             """),
@@ -2061,18 +2061,16 @@ def review_finalize_inspection(
 # ----------------------------
 @router.get("/history")
 def get_inspection_history(
+    search_by: Optional[str] = None,
+    query: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
 ):
     """
-    Get all inspection history records.
+    Get all inspection history records with optional search filtering.
     """
     try:
-        role_id = current_user.role_id
-        if role_id == 2:
-            return success_resp("History", [], 200)
-
-        results = db.execute(text("""
+        sql = """
             SELECT 
                 ih.id,
                 ih.inspection_id,
@@ -2091,8 +2089,21 @@ def get_inspection_history(
             LEFT JOIN inspection_type pit ON ih.inspection_type_id = pit.id
             LEFT JOIN product_master pm ON ih.product_id = pm.id
             LEFT JOIN location_master pl ON ih.location_id = pl.id
-            ORDER BY ih.history_date DESC
-        """)).fetchall()
+            WHERE 1=1
+        """
+        params = {}
+        
+        if search_by and query:
+            if search_by == "Report Number":
+                sql += " AND ih.report_number COLLATE utf8mb4_unicode_ci LIKE :q"
+                params["q"] = f"%{query}%"
+            elif search_by == "Tank Number":
+                sql += " AND ih.tank_number COLLATE utf8mb4_unicode_ci LIKE :q"
+                params["q"] = f"%{query}%"
+
+        sql += " ORDER BY ih.history_date DESC"
+
+        results = db.execute(text(sql), params).fetchall()
 
         history = []
         for r in results:

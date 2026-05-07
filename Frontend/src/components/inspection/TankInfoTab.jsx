@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { SearchableSelect } from '../ui/SearchableSelect';
 import { FormSelect } from '../ui/FormSelect';
 import { FormInput } from '../ui/FormInput';
 import { Button } from '../ui/Button';
@@ -165,20 +166,17 @@ export default function TankInfoTab({ masters, activeTanks, onSuccess, inspectio
                                     </div>
                                 </div>
                             ) : (
-                                <FormSelect
+                                <SearchableSelect
                                     label="Select Tank"
                                     id="tank_id"
                                     name="tank_id"
                                     value={formData.tank_id}
                                     onChange={handleChange}
                                     required
-                                    className="rounded-xl border-gray-200 text-base"
-                                >
-                                    <option value="">-- Select Tank --</option>
-                                    {activeTanks.map(t => (
-                                        <option key={t.tank_id} value={t.tank_id}>{t.tank_number}</option>
-                                    ))}
-                                </FormSelect>
+                                    options={activeTanks.map(t => ({ value: t.tank_id, label: t.tank_number }))}
+                                    placeholder="-- Search/Select Tank --"
+                                    className="rounded-xl"
+                                />
                             )}
                         </div>
 

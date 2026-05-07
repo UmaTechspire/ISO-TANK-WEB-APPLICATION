@@ -52,7 +52,7 @@ const unwrap = (response) => {
   return response;
 };
 
-export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existingTanks }) {
+export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existingTanks, setUnsavedRemarks }) {
   const [formData, setFormData] = useState(initialState);
   const [viewingImage, setViewingImage] = useState(null);
 
@@ -242,6 +242,11 @@ export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existin
     }
     setFormData(newFormData);
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: null }));
+
+    // TRACK REMARKS CHANGE
+    if (name === 'remark' || name === 'remark2') {
+      if (setUnsavedRemarks) setUnsavedRemarks(true);
+    }
   };
 
   const handleMultiChange = (name, value) => {
@@ -421,6 +426,9 @@ export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existin
         await updateTank(tankId, payload);
         alert('Tank updated successfully!');
       }
+
+      // RESET unsavedRemarks on success
+      if (setUnsavedRemarks) setUnsavedRemarks(false);
 
       // Pass the found ID back to parent
       console.log('Passing ID to parent:', savedTankId);
@@ -906,24 +914,9 @@ export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existin
               ))}
             </select>
           </div>
-        </div>
 
-        <div className="mt-6">
-          {/* Remarks 2 */}
-          <div className="flex flex-col col-span-1 sm:col-span-2 lg:col-span-2">
-            <label className="mb-1 text-sm font-medium text-gray-700">Remarks 2</label>
-            <input
-              type="text"
-              name="remark2"
-              value={safeValue(formData.remark2)}
-              onChange={handleChange}
-              className={inputClass}
-              placeholder="Second remarks field"
-            />
-          </div>
-
-          {/* Select Regulations */}
-          <div className="flex flex-col col-span-1 sm:col-span-2 lg:col-span-4 mt-2">
+          {/* Select Regulations - Moved inside grid and set to col-span-1 */}
+          <div className="flex flex-col">
             <label className="mb-1 text-sm font-medium text-gray-700">
               Select Regulations
             </label>
@@ -937,26 +930,42 @@ export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existin
               onChange={(val) => handleMultiChange('regulations', val.map(v => parseInt(v, 10)))}
               placeholder="Select applicable regulations..."
             />
-            <p className="text-xs text-gray-400 mt-1">* Click items to select/deselect them.</p>
+          </div>
+
+          {/* Remarks 2 - Moved inside grid and set to col-span-3 */}
+          <div className="flex flex-col col-span-1 sm:col-span-2 lg:col-span-3">
+            <label className="mb-1 text-sm font-medium text-gray-700">Remarks 2</label>
+            <input
+              type="text"
+              name="remark2"
+              value={safeValue(formData.remark2)}
+              onChange={handleChange}
+              className={inputClass}
+              placeholder="Second remarks field"
+            />
           </div>
         </div>
+
+
       </div>
 
       <div className="flex justify-end pt-6 mt-6 border-t space-x-3">
-        <Button
+        <button
+          type="button"
           onClick={onClose}
-          className="bg-[#6B7280] text-white hover:bg-[#4B5563] rounded-lg px-6 py-2.5 font-normal shadow-md"
+          className="px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 font-medium shadow-sm transition-colors text-sm"
         >
           Cancel
-        </Button>
-        <Button
+        </button>
+        <button
+          type="button"
           onClick={handleSave}
-          className="bg-[#54737E] text-white hover:bg-[#47656e] rounded-lg px-6 py-2.5 font-normal shadow-md flex items-center"
           disabled={isSaving}
+          className="px-6 py-2.5 text-white bg-[#546E7A] rounded-md hover:bg-[#455A64] font-medium shadow-sm flex items-center transition-colors text-sm"
         >
           <Save className="w-4 h-4 mr-2" />
           {isSaving ? (isEditMode ? 'Updating...' : 'Saving...') : (isEditMode ? 'Update' : 'Save')}
-        </Button>
+        </button>
       </div>
 
 

@@ -60,7 +60,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_CheckReportNumberExists`(IN p_report_number VARCHAR(100))
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_CheckReportNumberExists`(IN p_report_number VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci)
 BEGIN
     SELECT 1 FROM tank_inspection_details WHERE report_number = p_report_number LIMIT 1;
 END ;;
@@ -80,21 +80,21 @@ DELIMITER ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_CreateDrawing`(
-    IN p_pid_ref VARCHAR(255),
-    IN p_pid_draw TEXT,
-    IN p_pid_draw_name VARCHAR(255),
-    IN p_img2 TEXT,
-    IN p_img2_name VARCHAR(255),
-    IN p_img3 TEXT,
-    IN p_img3_name VARCHAR(255),
-    IN p_img4 TEXT,
-    IN p_img4_name VARCHAR(255),
-    IN p_img5 TEXT,
-    IN p_img5_name VARCHAR(255),
-    IN p_img6 TEXT,
-    IN p_img6_name VARCHAR(255),
-    IN p_remarks TEXT,
-    IN p_eid VARCHAR(100)
+    IN p_pid_ref VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    IN p_pid_draw TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    IN p_pid_draw_name VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    IN p_img2 TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    IN p_img2_name VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    IN p_img3 TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    IN p_img3_name VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    IN p_img4 TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    IN p_img4_name VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    IN p_img5 TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    IN p_img5_name VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    IN p_img6 TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    IN p_img6_name VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    IN p_remarks TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    IN p_eid VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
     INSERT INTO tank_drawings (
@@ -1176,13 +1176,13 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_GetInspectionTankDetails`(IN p_tank_number VARCHAR(100))
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_GetInspectionTankDetails`(IN p_tank_number VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci)
 BEGIN
     SELECT t.working_pressure, t.frame_type, t.design_temperature, t.cabinet_type, t.mfgr, t.ownership,
            t.safety_valve_brand_id, sv.brand_name AS safety_valve_brand_name
     FROM tank_details t
     LEFT JOIN safety_valve_brand sv ON t.safety_valve_brand_id = sv.id
-    WHERE t.tank_number = p_tank_number
+    WHERE t.tank_number COLLATE utf8mb4_unicode_ci = p_tank_number COLLATE utf8mb4_unicode_ci
     LIMIT 1;
 END ;;
 DELIMITER ;
@@ -1257,11 +1257,11 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_GetNextInspDate`(IN p_tank_number VARCHAR(100))
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_GetNextInspDate`(IN p_tank_number VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci)
 BEGIN
     SELECT next_insp_date
     FROM tank_certificate
-    WHERE tank_number = p_tank_number
+    WHERE tank_number COLLATE utf8mb4_unicode_ci = p_tank_number COLLATE utf8mb4_unicode_ci
     ORDER BY next_insp_date IS NULL ASC, next_insp_date DESC
     LIMIT 1;
 END ;;
@@ -1392,7 +1392,7 @@ BEGIN
            td.safety_valve_brand_id, td.pv_id, td.pid_id, td.ga_id, td.tank_number_image_path, td.remark2
     FROM tank_header t
     LEFT JOIN tank_details td ON t.id = td.tank_id
-    WHERE t.tank_number = p_tank_number;
+    WHERE t.tank_number COLLATE utf8mb4_unicode_ci = p_tank_number COLLATE utf8mb4_unicode_ci;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -1447,7 +1447,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_GetTankImages_V2`(IN p_tank_number VARCHAR(100), IN p_image_type VARCHAR(100))
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_GetTankImages_V2`(IN p_tank_number VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_image_type VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci)
 BEGIN
     IF p_image_type IS NOT NULL AND p_image_type <> '' THEN
         SELECT * FROM tank_images_v2 WHERE tank_number = p_tank_number AND image_type = p_image_type;

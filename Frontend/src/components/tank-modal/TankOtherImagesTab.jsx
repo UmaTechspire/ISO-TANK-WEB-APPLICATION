@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api, { getUploadUrl } from '../../services/api';
 import { Upload, X, Save } from 'lucide-react';
 
-export default function TankOtherImagesTab({ tankId, onNext, onClose }) {
+export default function TankOtherImagesTab({ tankId, onNext, onClose, isNewFlow }) {
     const [loading, setLoading] = useState(false);
     const [images, setImages] = useState({}); // { "image_1": { text: "", file: null, preview: url, existing: bool } }
 
@@ -181,7 +181,7 @@ export default function TankOtherImagesTab({ tankId, onNext, onClose }) {
                     className="px-6 py-2 text-white bg-[#546E7A] rounded-md hover:bg-[#455A64] font-medium shadow-sm flex items-center gap-2"
                 >
                     <Save size={18} />
-                    {loading ? 'Saving...' : 'Save & Next'}
+                    {loading ? (isNewFlow ? 'Saving...' : 'Updating...') : (isNewFlow ? 'Save' : 'Update')}
                 </button>
             </div>
         </div>

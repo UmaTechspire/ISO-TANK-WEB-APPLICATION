@@ -8,7 +8,7 @@ const BUTTON_STATES = {
     3: { color: 'bg-white border border-gray-300', label: 'NA' },
 };
 
-export default function TankValveTab({ tankId, onNext, onClose }) {
+export default function TankValveTab({ tankId, onNext, onClose, isNewFlow }) {
     const [loading, setLoading] = useState(false);
     const [valves, setValves] = useState([]);
     const [hasExistingData, setHasExistingData] = useState(false);
@@ -176,7 +176,7 @@ export default function TankValveTab({ tankId, onNext, onClose }) {
                     disabled={loading}
                     className="px-6 py-2 text-white bg-[#546E7A] rounded-md hover:bg-[#455A64] font-medium shadow-sm flex items-center"
                 >
-                    {loading ? 'Saving...' : 'Save & Next'}
+                    {loading ? (isNewFlow ? 'Saving...' : 'Updating...') : (isNewFlow ? 'Save & Next' : 'Update')}
                 </button>
             </div>
         </div>

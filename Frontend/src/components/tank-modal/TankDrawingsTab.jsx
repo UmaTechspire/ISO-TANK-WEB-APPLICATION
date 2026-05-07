@@ -29,7 +29,7 @@ const unwrap = (response) => {
   return response;
 };
 
-export default function TankDrawingsTab({ tankId, onNext, onClose }) {
+export default function TankDrawingsTab({ tankId, onNext, onClose, isNewFlow }) {
   const safeTankId = (typeof tankId === 'object' && tankId !== null) ? tankId.id : tankId;
 
   const [allDrawings, setAllDrawings] = useState([]);
@@ -220,7 +220,7 @@ export default function TankDrawingsTab({ tankId, onNext, onClose }) {
         )}
         {onNext && (
           <button type="button" onClick={onNext} className="px-8 py-2 text-white bg-[#546E7A] rounded-md hover:bg-[#455A64] font-medium shadow-sm flex items-center transition-colors text-sm">
-            Save
+            {isNewFlow ? 'Save & Next' : 'Update'}
           </button>
         )}
       </div>
