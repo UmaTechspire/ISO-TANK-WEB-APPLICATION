@@ -186,7 +186,7 @@ export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existin
             const unSource = data.un_code || data.un_iso_code || '';
             if (!unSource) return [];
             const codes = String(unSource).split(',').map((c) => c.trim());
-            
+
             // Map names back to IDs from masterData
             const ids = codes.map(name => {
               const m = masterData.un_iso_code?.find(
@@ -238,7 +238,18 @@ export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existin
       const mgw = name === 'mgw_kg' ? parseFloat(value) : parseFloat(formData.mgw_kg);
       const tare =
         name === 'tare_weight_kg' ? parseFloat(value) : parseFloat(formData.tare_weight_kg);
-      if (!isNaN(mgw) && !isNaN(tare)) newFormData.mpl_kg = (mgw - tare).toString();
+
+      if (!isNaN(mgw) && !isNaN(tare)) {
+        const mpl = mgw - tare;
+        newFormData.mpl_kg = mpl.toString();
+
+        // Instant validation for MPL
+        if (mpl < 0) {
+          setErrors(prev => ({ ...prev, mpl_kg: 'MGW must be greater than or equal to Tare Weight.' }));
+        } else {
+          setErrors(prev => ({ ...prev, mpl_kg: null }));
+        }
+      }
     }
     setFormData(newFormData);
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: null }));
@@ -247,22 +258,39 @@ export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existin
     if (name === 'remark' || name === 'remark2') {
       if (setUnsavedRemarks) setUnsavedRemarks(true);
     }
+
+    // INSTANT DATE VALIDATION
+    if (name === 'date_mfg' && value) {
+      const year = parseInt(value.split('-')[0]);
+      if (year > 2999 || year < 1900) {
+        setErrors(prev => ({ ...prev, date_mfg: 'Year must be between 1900 and 2999.' }));
+      } else {
+        setErrors(prev => ({ ...prev, date_mfg: null }));
+      }
+    }
+  };
+
+  const handleNumericKeyDown = (e) => {
+    // Block '-' (minus), 'e' (scientific notation), and '+' (plus)
+    if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+      e.preventDefault();
+    }
   };
 
   const handleMultiChange = (name, value) => {
     setFormData((prev) => {
       const newFormData = { ...prev, [name]: value };
-      
+
       // If un_code changes, automatically select ALL products that match the selected UN codes
       if (name === 'un_code') {
         const selectedUnIds = value.map(String);
         const matchingProducts = (masterData.products || [])
           .filter(p => selectedUnIds.includes(String(p.un_code_id)))
           .map(p => String(p.id));
-        
+
         newFormData.product_id = matchingProducts;
       }
-      
+
       return newFormData;
     });
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: null }));
@@ -322,6 +350,29 @@ export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existin
 
     if (data.tank_number && data.tank_number.length > 20) {
       newErrors.tank_number = 'Max 20 characters allowed.';
+    }
+
+    if (data.date_mfg) {
+      const year = parseInt(data.date_mfg.split('-')[0]);
+      if (year > 2999 || year < 1900) {
+        newErrors.date_mfg = 'Year must be between 1900 and 2999.';
+      }
+    }
+
+    if (data.tare_weight_kg && parseFloat(data.tare_weight_kg) < 1) {
+      newErrors.tare_weight_kg = 'Value must be at least 1.';
+    }
+    if (data.mgw_kg && parseFloat(data.mgw_kg) < 1) {
+      newErrors.mgw_kg = 'Value must be at least 1.';
+    }
+
+    if (data.mgw_kg && data.tare_weight_kg) {
+      if (parseFloat(data.mgw_kg) < parseFloat(data.tare_weight_kg)) {
+        newErrors.mpl_kg = 'MGW must be greater than or equal to Tare Weight.';
+      }
+    }
+    if (data.capacity_l && parseFloat(data.capacity_l) < 1) {
+      newErrors.capacity_l = 'Value must be at least 1.';
     }
 
     setErrors(newErrors);
@@ -544,8 +595,13 @@ export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existin
               name="date_mfg"
               value={safeValue(formatDateForInput(formData.date_mfg))}
               onChange={handleChange}
-              className={inputClass}
+              className={`${inputClass} ${errors.date_mfg ? errorClass : ''}`}
+              min="1900-01"
+              max="2999-12"
             />
+            {errors.date_mfg && (
+              <p className="text-xs text-red-500 mt-1">{errors.date_mfg}</p>
+            )}
           </div>
 
           {/* Standard field hidden per request. Previously a multi-select for applicable standards. */}
@@ -634,7 +690,9 @@ export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existin
               name="capacity_l"
               value={safeValue(formData.capacity_l)}
               onChange={handleChange}
+              onKeyDown={handleNumericKeyDown}
               className={`${inputClass} ${errors.capacity_l ? errorClass : ''}`}
+              min="1"
             />
             {errors.capacity_l && (
               <p className="text-xs text-red-500 mt-1">{errors.capacity_l}</p>
@@ -695,7 +753,9 @@ export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existin
               name="tare_weight_kg"
               value={safeValue(formData.tare_weight_kg)}
               onChange={handleChange}
+              onKeyDown={handleNumericKeyDown}
               className={`${inputClass} ${errors.tare_weight_kg ? errorClass : ''}`}
+              min="1"
             />
             {errors.tare_weight_kg && (
               <p className="text-xs text-red-500 mt-1">{errors.tare_weight_kg}</p>
@@ -712,7 +772,9 @@ export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existin
               name="mgw_kg"
               value={safeValue(formData.mgw_kg)}
               onChange={handleChange}
+              onKeyDown={handleNumericKeyDown}
               className={`${inputClass} ${errors.mgw_kg ? errorClass : ''}`}
+              min="1"
             />
             {errors.mgw_kg && <p className="text-xs text-red-500 mt-1">{errors.mgw_kg}</p>}
           </div>
@@ -720,7 +782,7 @@ export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existin
           {/* MPL */}
           <div className="flex flex-col">
             <label className="mb-1 text-sm font-medium text-gray-700">
-              MPL (kg)
+              MPL (MGW - Tare Weight)
             </label>
             <input
               type="number"
@@ -728,9 +790,12 @@ export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existin
               value={safeValue(formData.mpl_kg)}
               onChange={handleChange}
               readOnly
-              className={`${inputClass} bg-gray-100 cursor-not-allowed`}
+              className={`${inputClass} ${errors.mpl_kg ? 'border-red-500 bg-red-50' : 'bg-gray-100'} cursor-not-allowed`}
               placeholder="Auto-calculated"
             />
+            {errors.mpl_kg && (
+              <p className="text-xs text-red-500 mt-1 font-medium">{errors.mpl_kg}</p>
+            )}
           </div>
 
           {/* Pump */}
@@ -872,27 +937,45 @@ export default function TankDetailsTab({ onClose, onSaveSuccess, tankId, existin
           {/* Tank Number Image */}
           <div className="flex flex-col col-span-1 sm:col-span-2 lg:col-span-2">
             <label className="mb-1 text-sm font-medium text-gray-700">Tank Number Image</label>
-            <div className="flex items-center gap-4">
+            <div
+              className="w-full max-w-md flex items-center border border-gray-300 rounded-md overflow-hidden h-[38px] cursor-pointer group hover:border-blue-400 transition-all bg-white"
+              onClick={() => document.getElementById('tank_number_image').click()}
+            >
               <input
                 type="file"
+                id="tank_number_image"
                 accept="image/*"
                 onChange={(e) => {
                   if (e.target.files && e.target.files[0]) {
                     setFormData((prev) => ({ ...prev, _imageFile: e.target.files[0] }));
                   }
                 }}
-                className={`${inputClass} max-w-md`}
+                className="hidden"
               />
-              {formData.tank_number_image_path && (
-                <Button
-                  type="button"
-                  onClick={() => setViewingImage({ url: getUploadUrl(formData.tank_number_image_path), title: 'Tank Number Image' })}
-                  size="sm"
-                  icon={Eye}
-                  className="bg-green-600 text-white hover:bg-green-700"
+              <div className="bg-gray-100 px-3 h-full flex items-center border-r border-gray-300 text-[10px] font-semibold text-gray-600 group-hover:bg-gray-200 transition-colors whitespace-nowrap shrink-0">
+                Choose
+              </div>
+              <div className="px-2 text-[11px] text-gray-500 truncate flex-grow min-w-0">
+                {formData._imageFile
+                  ? formData._imageFile.name
+                  : formData.tank_number_image_path
+                    ? formData.tank_number_image_path.split('/').pop().replace(/^\d+_/, '')
+                    : 'No file chosen'}
+              </div>
+              {(formData.tank_number_image_path || formData._imageFile) && (
+                <div
+                  className="h-full px-3 flex items-center bg-green-600 text-white hover:bg-green-700 border-l border-green-700 shrink-0 transition-colors"
+                  title="View Image"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const url = formData._imageFile
+                      ? URL.createObjectURL(formData._imageFile)
+                      : getUploadUrl(formData.tank_number_image_path);
+                    setViewingImage({ url, title: 'Tank Number Image' });
+                  }}
                 >
-                  View
-                </Button>
+                  <Eye className="w-4 h-4" />
+                </div>
               )}
             </div>
           </div>

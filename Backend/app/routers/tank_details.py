@@ -209,11 +209,21 @@ def create_tank(data: dict, db: Session = Depends(get_db),current_user: User = D
                 detail="Both 'mgw_kg' and 'tare_weight_kg' must be provided and numeric",
             )
 
-        if not (tare_val < mgw_val):
+        if mgw_val is not None and mgw_val < 0:
+            raise HTTPException(status_code=400, detail="mgw_kg cannot be negative")
+
+        if tare_val is not None and tare_val < 0:
+            raise HTTPException(status_code=400, detail="tare_weight_kg cannot be negative")
+
+        capacity_val = to_float_or_none(data.get("capacity_l"))
+        if capacity_val is not None and capacity_val < 0:
+            raise HTTPException(status_code=400, detail="capacity_l cannot be negative")
+
+        if tare_val > mgw_val:
             # Custom validation message that should be sent back to the frontend
             raise HTTPException(
                 status_code=400,
-                detail="tare_weight must be less than mgw_kg",
+                detail="tare_weight must be less than or equal to mgw_kg (MPL cannot be negative)",
             )
 
         mpl_kg = mgw_val - tare_val
@@ -346,7 +356,7 @@ def export_to_excel(db: Session = Depends(get_db)):
     
     # Removed 'Standard' column from export per frontend requirement (allow null and hide in UI)
     headers = [
-        "ID", "Tank ID", "Tank Number", "Status", "Manufacturer (MFGR)",
+        "S.No", "Tank ID", "Tank Number", "Status", "Manufacturer (MFGR)",
         "Date of Manufacture", "Initial Test", "UN Code", "Capacity (L)", "MAWP",
         "Design Temperature", "Tare Weight (kg)", "MGW (kg)", "MPL (kg)", "Size",
         "Pump Type", "Gross (kg)", "Net (kg)", "Remark", "Owner", "Created By", "Updated By"
@@ -363,7 +373,7 @@ def export_to_excel(db: Session = Depends(get_db)):
         cell.alignment = header_alignment
     
     for row_num, (tank, tank_detail) in enumerate(results, 2):
-        ws.cell(row=row_num, column=1, value=tank.id)
+        ws.cell(row=row_num, column=1, value=row_num - 1)
         ws.cell(row=row_num, column=2, value=tank.id)
         ws.cell(row=row_num, column=3, value=tank_detail.tank_number or tank.tank_number)
         ws.cell(row=row_num, column=4, value=tank_detail.status)
@@ -375,7 +385,6 @@ def export_to_excel(db: Session = Depends(get_db)):
         )
         ws.cell(row=row_num, column=7, value=tank_detail.initial_test if tank_detail.initial_test else None)
         ws.cell(row=row_num, column=8, value=tank_detail.un_code)
-        # omitted: standard (user requested hidden / nullable)
         ws.cell(row=row_num, column=9, value=tank_detail.capacity_l)
         ws.cell(row=row_num, column=10, value=tank_detail.mawp)
         ws.cell(row=row_num, column=11, value=tank_detail.design_temperature)
@@ -563,8 +572,19 @@ def update_tank(tank_id: int, data: dict, db: Session = Depends(get_db), current
     try:
         tare_val = to_float_or_none(getattr(tank_detail, 'tare_weight_kg', None))
         mgw_val = to_float_or_none(getattr(tank_detail, 'mgw_kg', None))
-        if tare_val is not None and mgw_val is not None and not (tare_val < mgw_val):
-            raise HTTPException(status_code=400, detail="tare_weight must be less than mgw")
+        capacity_val = to_float_or_none(getattr(tank_detail, 'capacity_l', None))
+
+        if tare_val is not None and tare_val < 0:
+            raise HTTPException(status_code=400, detail="tare_weight_kg cannot be negative")
+        
+        if mgw_val is not None and mgw_val < 0:
+            raise HTTPException(status_code=400, detail="mgw_kg cannot be negative")
+            
+        if capacity_val is not None and capacity_val < 0:
+            raise HTTPException(status_code=400, detail="capacity_l cannot be negative")
+
+        if tare_val is not None and mgw_val is not None and tare_val > mgw_val:
+            raise HTTPException(status_code=400, detail="tare_weight must be less than or equal to mgw (MPL cannot be negative)")
     except HTTPException:
         # Re-raise validation errors
         raise

@@ -4,6 +4,7 @@ import { ChevronDown, X } from 'lucide-react';
 export const SearchableSelect = ({
     label,
     id,
+    name,
     value,
     onChange,
     options = [],
@@ -61,12 +62,12 @@ export const SearchableSelect = ({
         setIsOpen(true);
         // If the user clears the input, clear the selection
         if (e.target.value === '') {
-            onChange({ target: { value: '' } }); // Mimic event object for consistency
+            onChange({ target: { name: name || id, value: '', id: id } }); // Mimic event object for consistency
         }
     };
 
     const handleOptionClick = (option) => {
-        onChange({ target: { value: option.value } }); // Mimic event object
+        onChange({ target: { name: name || id, value: option.value, id: id } }); // Mimic event object
         setSearchTerm(option.label);
         setIsOpen(false);
     };
@@ -79,7 +80,7 @@ export const SearchableSelect = ({
 
     const clearSelection = (e) => {
         e.stopPropagation();
-        onChange({ target: { value: '' } });
+        onChange({ target: { name: name || id, value: '', id: id } });
         setSearchTerm('');
         inputRef.current?.focus();
     };

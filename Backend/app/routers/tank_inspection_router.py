@@ -1473,7 +1473,30 @@ def get_tank_details(
             )
 
         # ---------------------------------------------------------
-        # 4️⃣ Response (NO inspection_id here)
+        # 4️⃣ Check for active draft inspection
+        # ---------------------------------------------------------
+        active_inspection = db.execute(
+            text("""
+                SELECT inspection_id, report_number
+                FROM tank_inspection_details 
+                WHERE tank_id = :tid 
+                  AND (is_submitted IS NULL OR is_submitted = 0)
+                  AND (web_submitted IS NULL OR web_submitted = 0)
+                  AND (is_reviewed IS NULL OR is_reviewed = 0)
+                LIMIT 1
+            """),
+            {"tid": tank_id}
+        ).fetchone()
+
+        active_info = None
+        if active_inspection:
+            if hasattr(active_inspection, "_mapping"):
+                active_info = dict(active_inspection._mapping)
+            else:
+                active_info = {"inspection_id": active_inspection[0], "report_number": active_inspection[1]}
+
+        # ---------------------------------------------------------
+        # 5️⃣ Response (NO inspection_id here)
         # ---------------------------------------------------------
         def conv(v):
             return float(v) if isinstance(v, Decimal) else v
@@ -1489,6 +1512,7 @@ def get_tank_details(
             "ownership": row.get("ownership"),
             "safety_valve_brand_name": row.get("safety_valve_brand_name"),
             "pi_next_inspection_date": pi_next_inspection_date,
+            "active_inspection": active_info
         }
 
         return success_resp("Tank details fetched", data, 200)
@@ -1533,7 +1557,6 @@ def get_inspection_by_id(
                     report_number,
                     inspection_date,
                     status_id,
-                    product_id,
                     inspection_type_id,
                     location_id,
                     working_pressure,
@@ -1550,7 +1573,6 @@ def get_inspection_by_id(
                     operator_id,
                     emp_id,
                     ownership,
-                    lifter_weight,
                     vacuum_reading,
                     lifter_weight_value,
                     is_submitted,
@@ -1979,77 +2001,14 @@ def review_finalize_inspection(
         if not row:
             return error_resp(f"Inspection {inspection_id} not found", 404)
 
-        # Update is_reviewed and reviewed_by
+        # Call the stored procedure to mark as reviewed and move to history
         db.execute(
-            text("UPDATE tank_inspection_details SET is_reviewed = 1, reviewed_by = :reviewer, updated_at = NOW() WHERE inspection_id = :id"),
-            {"reviewer": emp_id_val, "id": inspection_id}
+            text("CALL sp_ReviewFinalizeInspection(:id, :reviewer)"),
+            {"id": inspection_id, "reviewer": emp_id_val}
         )
         db.commit()
 
-        # Insert into inspection_history
-        try:
-            # Fetch the updated record
-            # JOIN with tank_details to get product_id and safety_valve_brand_id which aren't in ti table
-            record = db.execute(
-                text("""
-                    SELECT ti.*, t.product_id, t.safety_valve_brand_id
-                    FROM tank_inspection_details ti
-                    LEFT JOIN tank_details t ON ti.tank_id = t.tank_id
-                    WHERE ti.inspection_id = :id
-                """),
-                {"id": inspection_id}
-            ).fetchone()
-
-            if record:
-                # Use mapping/getattr to be safe with row object
-                # Some environments might return row, others mapping
-                r = record._mapping if hasattr(record, "_mapping") else dict(zip(record.keys(), record))
-
-                history_entry = InspectionHistory(
-                    inspection_id=r["inspection_id"],
-                    inspection_date=r["inspection_date"],
-                    created_at=r["created_at"],
-                    updated_at=r["updated_at"],
-                    report_number=r["report_number"],
-                    tank_id=r["tank_id"],
-                    tank_number=r["tank_number"],
-                    status_id=r["status_id"],
-                    product_id=r.get("product_id"),
-                    inspection_type_id=r["inspection_type_id"],
-                    location_id=r["location_id"],
-                    working_pressure=r["working_pressure"],
-                    design_temperature=r["design_temperature"],
-                    frame_type=r["frame_type"],
-                    cabinet_type=r["cabinet_type"],
-                    mfgr=r["mfgr"],
-                    safety_valve_brand_id=r.get("safety_valve_brand_id"),
-                    safety_valve_model_id=r["safety_valve_model_id"],
-                    safety_valve_size_id=r["safety_valve_size_id"],
-                    pi_next_inspection_date=r["pi_next_inspection_date"],
-                    notes=r["notes"],
-                    lifter_weight=r.get("lifter_weight"),
-                    lifter_weight_thumbnail=r.get("lifter_weight_thumbnail"),
-                    vacuum_reading=r["vacuum_reading"],
-                    vacuum_uom=r["vacuum_uom"],
-                    lifter_weight_value=r["lifter_weight_value"],
-                    emp_id=r["emp_id"],
-                    operator_id=r["operator_id"],
-                    ownership=r["ownership"],
-                    is_submitted=r["is_submitted"],
-                    is_reviewed=r["is_reviewed"],
-                    reviewed_by=r["reviewed_by"],
-                    web_submitted=r["web_submitted"],
-                    created_by=r["created_by"],
-                    updated_by=r["updated_by"],
-                    history_date=func.now()
-                )
-                db.add(history_entry)
-                db.commit()
-        except Exception as e:
-            logger.error(f"Error inserting into inspection_history for {inspection_id}: {e}")
-            # Don't fail the whole operation
-
-        return success_resp("Inspection report marked as REVIEWED", {"inspection_id": inspection_id, "reviewed_by": emp_id_val}, 200)
+        return success_resp("Inspection report marked as REVIEWED and moved to history", {"inspection_id": inspection_id, "reviewed_by": emp_id_val}, 200)
 
     except Exception as e:
         db.rollback()
@@ -2070,40 +2029,10 @@ def get_inspection_history(
     Get all inspection history records with optional search filtering.
     """
     try:
-        sql = """
-            SELECT 
-                ih.id,
-                ih.inspection_id,
-                ih.inspection_date,
-                ih.report_number,
-                ih.tank_number,
-                ih.history_date,
-                ih.is_reviewed,
-                ih.reviewed_by,
-                ps.status_name,
-                pit.inspection_type_name,
-                pm.product_name,
-                pl.location_name
-            FROM inspection_history ih
-            LEFT JOIN tank_status ps ON ih.status_id = ps.id
-            LEFT JOIN inspection_type pit ON ih.inspection_type_id = pit.id
-            LEFT JOIN product_master pm ON ih.product_id = pm.id
-            LEFT JOIN location_master pl ON ih.location_id = pl.id
-            WHERE 1=1
-        """
-        params = {}
-        
-        if search_by and query:
-            if search_by == "Report Number":
-                sql += " AND ih.report_number COLLATE utf8mb4_unicode_ci LIKE :q"
-                params["q"] = f"%{query}%"
-            elif search_by == "Tank Number":
-                sql += " AND ih.tank_number COLLATE utf8mb4_unicode_ci LIKE :q"
-                params["q"] = f"%{query}%"
-
-        sql += " ORDER BY ih.history_date DESC"
-
-        results = db.execute(text(sql), params).fetchall()
+        results = db.execute(
+            text("CALL sp_GetInspectionHistory(:search_by, :query)"),
+            {"search_by": search_by, "query": query}
+        ).fetchall()
 
         history = []
         for r in results:

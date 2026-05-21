@@ -63,6 +63,12 @@ const isNearing = (dateStr) => {
   }
 };
 
+const isYearOutOfBounds = (dateStr) => {
+  if (!dateStr) return false;
+  const year = parseInt(dateStr.split('-')[0], 10);
+  return year < 1900 || year > 3000;
+};
+
 const StatusToggle = ({ active, onToggle }) => (
   <button
     onClick={onToggle}
@@ -756,7 +762,7 @@ export default function CertificatesMasterPage({ mode = 'list' }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-bold text-gray-700">2.5Y Inspection Date</label>
-                <input type="month" value={formData.insp_2_5y_date}
+                <input type="month" value={formData.insp_2_5y_date} min="1900-01" max="3000-12"
                   onChange={(e) => {
                     const val = e.target.value;
                     setFormData(p => ({
@@ -765,13 +771,13 @@ export default function CertificatesMasterPage({ mode = 'list' }) {
                       next_insp_date: val ? addMonthsToMonthStr(val, 30) : p.next_insp_date
                     }));
                   }}
-                  className="h-11 border border-gray-300 rounded px-3 focus:ring-2 focus:ring-[#546E7A] outline-none" />
+                  className={`h-11 border rounded px-3 focus:ring-2 outline-none ${isYearOutOfBounds(formData.insp_2_5y_date) ? 'border-red-500 focus:ring-red-500 text-red-500' : 'border-gray-300 focus:ring-[#546E7A]'}`} />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-bold text-gray-700">Next Inspection Date</label>
-                <input type="month" value={formData.next_insp_date}
+                <input type="month" value={formData.next_insp_date} min="1900-01" max="3000-12"
                   onChange={(e) => setFormData(p => ({ ...p, next_insp_date: e.target.value }))}
-                  className="h-11 border border-gray-300 rounded px-3 focus:ring-2 focus:ring-[#546E7A] outline-none" />
+                  className={`h-11 border rounded px-3 focus:ring-2 outline-none ${isYearOutOfBounds(formData.next_insp_date) ? 'border-red-500 focus:ring-red-500 text-red-500' : 'border-gray-300 focus:ring-[#546E7A]'}`} />
               </div>
             </div>
 

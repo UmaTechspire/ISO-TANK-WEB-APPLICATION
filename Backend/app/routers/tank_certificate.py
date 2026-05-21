@@ -93,11 +93,19 @@ def _normalize_date_str(s: Optional[str]) -> Optional[str]:
     if not s:
         return None
     s = s.strip().replace('-', '/')
+    
+    def validate_year(year_str):
+        year = int(year_str)
+        if year < 1900 or year > 3000:
+            raise HTTPException(status_code=400, detail="Inspection year must be between 1900 and 3000.")
+            
     m = re.match(r'^(\d{4})/(\d{2})/(\d{2})$', s)
     if m:
+        validate_year(m.group(1))
         return f"{m.group(1)}/{m.group(2)}"
     m2 = re.match(r'^(\d{4})/(\d{2})$', s)
     if m2:
+        validate_year(m2.group(1))
         mm = int(m2.group(2))
         if 1 <= mm <= 12:
             return f"{m2.group(1)}/{m2.group(2)}"

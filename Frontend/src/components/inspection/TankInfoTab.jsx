@@ -30,6 +30,16 @@ export default function TankInfoTab({ masters, activeTanks, onSuccess, inspectio
         try {
             const res = await getTankDetails(tId);
             if (res.success) {
+                if (!inspectionId && res.data.active_inspection) {
+                    const tNum = activeTanks.find(t => String(t.tank_id) === String(tId))?.tank_number || 'this tank';
+                    alert(`The tank "${tNum}" already has an active (DRAFT) inspection: ${res.data.active_inspection.report_number}. Please complete or delete that inspection first.`);
+                    
+                    setFormData(prev => ({ ...prev, tank_id: '' }));
+                    setSelectedTankNumber('');
+                    setTankDetails(null);
+                    return;
+                }
+
                 setTankDetails(res.data);
                 if (!inspectionId) {
                     const updateData = {};
